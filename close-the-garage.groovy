@@ -8,8 +8,8 @@ definition(
     author: "Kristopher Kubicki",
     description: "Closes the garage door if no motion detected",
     category: "My Apps",
-    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience.png",
-    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Convenience/Cat-Convenience@2x.png")
+    iconUrl: "https://s3.amazonaws.com/smartapp-icons/Meta/garage_contact.png",
+    iconX2Url: "https://s3.amazonaws.com/smartapp-icons/Meta/garage_contact@2x.png")
 
 
 
@@ -17,7 +17,7 @@ preferences {
 	section("Close the garage door if there's no motion..."){
 		input "motions", "capability.motionSensor", title: "Where?", multiple: true
 	}
-	section("For how many minutes..."){
+	section("After how many minutes..."){
 		input "minutes", "number", title: "Minutes?"
 	}
 	section("Close this door..."){
@@ -43,27 +43,21 @@ def motionHandler(evt) {
 	log.debug "$evt.name: $evt.value"
 
 	if (evt.value == "inactive") {
-		if (!state.inactiveAt) {
-			state.inactiveAt = now()
-            runIn(minutes * 60, "scheduleCheck", [overwrite: false])
-		}
+		runIn(minutes*60, "scheduleCheck", [overwrite: true])
 	}
 }
 
 def scheduleCheck() {
-	log.debug "schedule check, ts = ${state.inactiveAt}"
-	if (state.inactiveAt) {
+    // better way to do this is to check the inactivity time of each device
     	def success = 1
         for (sensor in settings.motions) { 
-			if(sensor.latestValue("motion") == "active") { 
+			if(sensor.currentValue("motion") == "active") { 
 				success = 0
 			}
 		}
         
-		if (success) {
+		if (success > 0 && doors.currentValue("door") != "closed") {
 			log.debug "closing door"
 			doors.close()
-			state.inactiveAt = null
 		}
-	}
 }
